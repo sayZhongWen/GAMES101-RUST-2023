@@ -204,10 +204,14 @@ pub fn phong_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     
     // <遍历每一束光>
     for light in lights {
-        // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
-        // components are. Then, accumulate that result on the *result_color* object.
-
-
+        let la=ka.component_mul(&amb_light_intensity);
+        let v=(eye_pos-point).normalize();
+        let l=(light.position-point).normalize();
+        let h=(v+l).normalize();
+        let r_square=(light.position-point).dot(&(light.position-point));
+        let ld=kd.component_mul(&light.intensity)/r_square*normal.normalize().dot(&l).max(0.0);
+        let ls=ks.component_mul(&light.intensity)/r_square*(normal.normalize().dot(&h).max(0.0)).powf(p);
+        result_color+=la+ld+ls;
     }
     result_color * 255.0
 }
