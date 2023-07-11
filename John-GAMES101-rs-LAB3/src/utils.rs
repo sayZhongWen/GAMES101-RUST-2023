@@ -34,8 +34,62 @@ pub(crate) fn get_model_matrix(rotation_angle: f64) -> M4f {
 
 pub(crate) fn get_projection_matrix(eye_fov: f64, aspect_ratio: f64, z_near: f64, z_far: f64) -> M4f {
     let mut persp2ortho: M4f = Matrix4::zeros();
-    /*  Implement your code here  */
-
+    let b = z_near.abs() * (eye_fov / 2.0).tan();
+    let t = -b;
+    let r = t * aspect_ratio;
+    let l = -r;
+    persp2ortho = Matrix4::new(
+        2.0 / (r - l),
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.0 / (t - b),
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.0 / (z_near - z_far),
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+    ) * Matrix4::new(
+        1.0,
+        0.0,
+        0.0,
+        -(r + l) / 2.0,
+        0.0,
+        1.0,
+        0.0,
+        -(t + b) / 2.0,
+        0.0,
+        0.0,
+        1.0,
+        -(z_far + z_near) / 2.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+    ) * Matrix4::new(
+        z_near,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        z_near,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        z_near + z_far,
+        -z_near * z_far,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+    );
     persp2ortho
 }
 

@@ -108,9 +108,78 @@ impl Rasterizer {
     }
 
     pub fn rasterize_triangle(&mut self, triangle: &Triangle, mvp: Matrix4<f64>) {
-        /*  Implement your code here  */
-
-
+        let (t, view_pos) = Rasterizer::get_new_tri(
+            triangle,
+            self.view,
+            self.model,
+            mvp,
+            (self.width, self.width),
+        );
+        let v = &t.to_vector4();
+        let x_min = v[0].x.min(v[1].x).min(v[2].x) as usize;
+        let x_max = v[0].x.max(v[1].x).max(v[2].x) as usize;
+        let y_min = v[0].y.min(v[1].y).min(v[2].y) as usize;
+        let y_max = v[0].y.max(v[1].y).max(v[2].y) as usize;
+        for x in x_min..=x_max {
+            for y in y_min..=y_max {
+                if inside_triangle(x as f64 + 0.5, y as f64 + 0.5, &t.v) {
+                    let (c1, c2, c3) = compute_barycentric2d(x as f64 + 0.5, y as f64 + 0.5, &t.v);
+                    let z_interpolated =
+                        (c1 * v[0].z / v[0].w + c2 * v[1].z / v[1].w + c3 * v[2].z / v[2].w)
+                            / (c1 / v[0].w + c2 / v[1].w + c3 / v[2].w);
+                    let idx = Rasterizer::get_index(self.height, self.width, x, y);
+                    if z_interpolated < self.depth_buf[idx] {
+                        self.depth_buf[idx] = z_interpolated;
+                        let color = Rasterizer::interpolate_Vec3(
+                            c1, c2, c3, t.color[0], t.color[1], t.color[2], 1.0,
+                        );
+                        let normal = Rasterizer::interpolate_Vec3(
+                            c1,
+                            c2,
+                            c3,
+                            t.normal[0],
+                            t.normal[1],
+                            t.normal[2],
+                            1.0,
+                        );
+                        let texcoord = Rasterizer::interpolate_Vec2(
+                            c1,
+                            c2,
+                            c3,
+                            t.tex_coords[0],
+                            t.tex_coords[1],
+                            t.tex_coords[2],
+                            1.0,
+                        );
+                        let tex = match &self.texture {
+                            None => None,
+                            Some(texx) => Some(Rc::new(texx)),
+                        };
+                        let mut fspl = FragmentShaderPayload::new(&color, &normal, &texcoord, tex);
+                        fspl.view_pos = Rasterizer::interpolate_Vec3(
+                            c1,
+                            c2,
+                            c3,
+                            view_pos[0],
+                            view_pos[1],
+                            view_pos[2],
+                            1.0,
+                        );
+                        let final_color = match self.fragment_shader {
+                            None => Vector3::zeros(),
+                            Some(f) => f(&fspl),
+                        };
+                        Rasterizer::set_pixel(
+                            self.height,
+                            self.width,
+                            &mut self.frame_buf,
+                            &Vector3::new(x as f64, y as f64, 0.0),
+                            &final_color,
+                        );
+                    }
+                }
+            }
+        }
     }
     
     fn interpolate_Vec3(a: f64, b: f64, c: f64, vert1: Vector3<f64>, vert2: Vector3<f64>, vert3: Vector3<f64>, weight: f64) -> Vector3<f64> {
