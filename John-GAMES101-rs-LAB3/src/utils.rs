@@ -219,11 +219,8 @@ pub fn phong_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
 pub fn texture_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     let ka = Vector3::new(0.005, 0.005, 0.005);
     let texture_color: Vector3<f64> = match &payload.texture {
-        // TODO: Get the texture value at the texture coordinates of the current fragment
-        // <获取材质颜色信息>
-
         None => Vector3::new(0.0, 0.0, 0.0),
-        Some(texture) => Vector3::new(0.0, 0.0, 0.0), // Do modification here
+        Some(texture) => texture.get_color(payload.tex_coords.x,payload.tex_coords.y),
     };
     let kd = texture_color / 255.0; // 材质颜色影响漫反射系数
     let ks = Vector3::new(0.7937, 0.7937, 0.7937);
@@ -249,11 +246,15 @@ pub fn texture_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     let mut result_color = Vector3::zeros();
 
     for light in lights {
-        // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
-        // components are. Then, accumulate that result on the *result_color* object.
-
+        let la=ka.component_mul(&amb_light_intensity);
+        let v=(eye_pos-point).normalize();
+        let l=(light.position-point).normalize();
+        let h=(v+l).normalize();
+        let r_square=(light.position-point).dot(&(light.position-point));
+        let ld=kd.component_mul(&light.intensity)/r_square*normal.normalize().dot(&l).max(0.0);
+        let ls=ks.component_mul(&light.intensity)/r_square*(normal.normalize().dot(&h).max(0.0)).powf(p);
+        result_color+=la+ld+ls;
     }
-
     result_color * 255.0
 }
 

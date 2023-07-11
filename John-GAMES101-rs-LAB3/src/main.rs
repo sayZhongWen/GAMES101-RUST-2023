@@ -27,10 +27,10 @@ fn main() -> Result<()> {
     let obj_path = "./models/spot/".to_owned();
     let mut filename = "output.png".to_owned();
     // let texture_path = "hmap.jpg".to_owned();
-    let texture_path = "hmap.jpg".to_owned();
+    let texture_path="spot_texture.jpg".to_owned();
     let mut tex = Texture::new(&(obj_path.clone() + &texture_path));
     let mut active_shader: fn(&FragmentShaderPayload) -> Vector3<f64> = normal_fragment_shader; // 默认为<normal shader>
-    active_shader=phong_fragment_shader;//
+    active_shader=texture_fragment_shader;//
     let ags: Vec<String> = env::args().collect();
     if ags.len() >= 2 { filename = ags[1].clone(); }
     if ags.len() >= 3 {
