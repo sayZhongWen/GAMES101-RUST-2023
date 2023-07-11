@@ -277,22 +277,29 @@ pub fn bump_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
 
     let p = 150.0;
 
-    let normal = payload.normal;
+    let mut normal = payload.normal;
     let point = payload.view_pos;
     let color = payload.color;
 
     let (kh, kn) = (0.2, 0.1);
 
-    // TODO: Implement bump mapping here
-    // Let n = normal = (x, y, z)
-    // Vector t = (x*y/sqrt(x*x+z*z),sqrt(x*x+z*z),z*y/sqrt(x*x+z*z))
-    // Vector b = n cross product t
-    // Matrix TBN = [t b n]
-    // dU = kh * kn * (h(u+1/w,v)-h(u,v))
-    // dV = kh * kn * (h(u,v+1/h)-h(u,v))
-    // Vector ln = (-dU, -dV, 1)
-    // Normal n = normalize(TBN * ln)
-
+    let x=normal.x;
+    let y=normal.y;
+    let z=normal.z;
+    let t=Vector3::new(x*y/(x*x+z*z).sqrt(),(x*x+z*z).sqrt(),z*y/(x*x+z*z).sqrt());
+    let b=normal.cross(&t);
+    let TBN=Matrix3::new(
+        t.x,b.x,normal.x,
+        t.y,b.y,normal.y,
+        t.z,b.z,normal.z,
+    );
+    let (u,v)=(payload.tex_coords.x,payload.tex_coords.y);
+    let texture=payload.texture.as_ref().unwrap();
+    let (w,h)=(texture.width as f64,texture.height as f64);
+    let dU=kh*kn*(texture.get_color(u+1.0/w,v).norm()-texture.get_color(u,v).norm());
+    let dV=kh*kn*(texture.get_color(u,v+1.0/h).norm()-texture.get_color(u,v).norm());
+    let ln=Vector3::new(-dU,-dV,1.0);
+    normal=(TBN*ln).normalize();
     let mut result_color = Vector3::zeros();
     result_color = normal;
 
