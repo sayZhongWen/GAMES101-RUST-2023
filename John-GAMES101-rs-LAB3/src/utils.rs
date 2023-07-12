@@ -255,7 +255,7 @@ pub fn texture_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
 
     let color = texture_color;
     let point = payload.view_pos;
-    let normal = payload.normal;
+    let normal = payload.normal.normalize();
 
     let mut result_color = Vector3::zeros();
 
@@ -293,7 +293,7 @@ pub fn bump_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
 
     let p = 150.0;
 
-    let mut normal = payload.normal;
+    let mut normal = payload.normal.normalize();
     let point = payload.view_pos;
     let color = payload.color;
 
@@ -341,7 +341,7 @@ pub fn displacement_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
 
     let p = 150.0;
 
-    let mut normal = payload.normal;
+    let mut normal = payload.normal.normalize();
     let mut point = payload.view_pos;
     let color = payload.color;
 
