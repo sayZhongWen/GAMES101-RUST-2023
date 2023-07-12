@@ -1,23 +1,21 @@
 // #![allow(warnings)]
 
-mod triangle;
 mod rasterizer;
-mod utils;
-mod texture;
 mod shader;
+mod texture;
+mod triangle;
+mod utils;
 
 extern crate opencv;
 
-use std::env;
-use nalgebra::Vector3;
-use opencv::{
-    Result,
-};
-use opencv::core::Vector;
 use crate::rasterizer::{Buffer, Rasterizer};
-use utils::*;
 use crate::shader::FragmentShaderPayload;
 use crate::texture::Texture;
+use nalgebra::Vector3;
+use opencv::core::Vector;
+use opencv::Result;
+use std::env;
+use utils::*;
 
 fn main() -> Result<()> {
     let obj_file = "./models/spot/spot_triangulated_good.obj";
@@ -30,12 +28,12 @@ fn main() -> Result<()> {
     // let texture_path="spot_texture.jpg".to_owned();
     let mut tex = Texture::new(&(obj_path.clone() + &texture_path));
     let mut active_shader: fn(&FragmentShaderPayload) -> Vector3<f64> = normal_fragment_shader; // 默认为<normal shader>
-    active_shader=bump_fragment_shader;//
     let ags: Vec<String> = env::args().collect();
-    if ags.len() >= 2 { filename = ags[1].clone(); }
+    if ags.len() >= 2 {
+        filename = ags[1].clone();
+    }
     if ags.len() >= 3 {
-        let (shader, t) =
-            choose_shader_texture(&ags[2], &obj_path);
+        let (shader, t) = choose_shader_texture(&ags[2], &obj_path);
         active_shader = shader;
         if let Some(tx) = t {
             tex = tx;
@@ -46,7 +44,6 @@ fn main() -> Result<()> {
     let eye_pos = Vector3::new(0.0, 0.0, 10.0);
     r.set_vertex_shader(vertex_shader);
     r.set_fragment_shader(active_shader);
-
 
     r.clear(Buffer::Both);
     r.set_model(get_model_matrix(angle));

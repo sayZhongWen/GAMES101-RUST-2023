@@ -1,10 +1,10 @@
-use std::os::raw::c_void;
-use nalgebra::{Matrix3, Matrix4, Vector3, Vector4};
-use opencv::core::{Mat, MatTraitConst};
-use opencv::imgproc::{COLOR_RGB2BGR, cvt_color};
 use crate::shader::{FragmentShaderPayload, VertexShaderPayload};
 use crate::texture::Texture;
 use crate::triangle::Triangle;
+use nalgebra::{Matrix3, Matrix4, Vector3, Vector4};
+use opencv::core::{Mat, MatTraitConst};
+use opencv::imgproc::{cvt_color, COLOR_RGB2BGR};
+use std::os::raw::c_void;
 
 type V3f = Vector3<f64>;
 type M4f = Matrix4<f64>;
@@ -32,7 +32,12 @@ pub(crate) fn get_model_matrix(rotation_angle: f64) -> M4f {
     model * scale
 }
 
-pub(crate) fn get_projection_matrix(eye_fov: f64, aspect_ratio: f64, z_near: f64, z_far: f64) -> M4f {
+pub(crate) fn get_projection_matrix(
+    eye_fov: f64,
+    aspect_ratio: f64,
+    z_near: f64,
+    z_far: f64,
+) -> M4f {
     let mut persp2ortho: M4f = Matrix4::zeros();
     let b = z_near.abs() * (eye_fov / 2.0).tan();
     let t = -b;
@@ -93,18 +98,21 @@ pub(crate) fn get_projection_matrix(eye_fov: f64, aspect_ratio: f64, z_near: f64
     persp2ortho
 }
 
-
 pub(crate) fn frame_buffer2cv_mat(frame_buffer: &Vec<V3f>) -> Mat {
     let mut image = unsafe {
         Mat::new_rows_cols_with_data(
-            700, 700,
+            700,
+            700,
             opencv::core::CV_64FC3,
             frame_buffer.as_ptr() as *mut c_void,
             opencv::core::Mat_AUTO_STEP,
-        ).unwrap()
+        )
+        .unwrap()
     };
     let mut img = Mat::copy(&image).unwrap();
-    image.convert_to(&mut img, opencv::core::CV_8UC3, 1.0, 1.0).expect("panic message");
+    image
+        .convert_to(&mut img, opencv::core::CV_8UC3, 1.0, 1.0)
+        .expect("panic message");
     cvt_color(&img, &mut image, COLOR_RGB2BGR, 0).unwrap();
     image
 }
@@ -118,7 +126,10 @@ pub fn load_triangles(obj_file: &str) -> Vec<Triangle> {
     // 遍历模型的每个面
     for vtx in 0..n {
         let rg = vtx * 3..vtx * 3 + 3;
-        let idx: Vec<_> = mesh.indices[rg.clone()].iter().map(|i| *i as usize).collect();
+        let idx: Vec<_> = mesh.indices[rg.clone()]
+            .iter()
+            .map(|i| *i as usize)
+            .collect();
 
         // 记录图形每个面中连续三个顶点（小三角形）
         for j in 0..3 {
@@ -134,8 +145,10 @@ pub fn load_triangles(obj_file: &str) -> Vec<Triangle> {
 }
 
 // 选择对应的Shader
-pub fn choose_shader_texture(method: &str,
-                             obj_path: &str) -> (fn(&FragmentShaderPayload) -> Vector3<f64>, Option<Texture>) {
+pub fn choose_shader_texture(
+    method: &str,
+    obj_path: &str,
+) -> (fn(&FragmentShaderPayload) -> Vector3<f64>, Option<Texture>) {
     let mut active_shader: fn(&FragmentShaderPayload) -> Vector3<f64> = phong_fragment_shader;
     let mut tex = None;
     if method == "normal" {
@@ -169,8 +182,7 @@ struct Light {
 }
 
 pub fn normal_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
-    let result_color =
-        (payload.normal.xyz().normalize() + Vector3::new(1.0, 1.0, 1.0)) / 2.0;
+    let result_color = (payload.normal.xyz().normalize() + Vector3::new(1.0, 1.0, 1.0)) / 2.0;
     result_color * 255.0
 }
 
@@ -201,17 +213,19 @@ pub fn phong_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     let color = payload.color;
 
     let mut result_color = Vector3::zeros(); // 保存光照结果
-    
+
     // <遍历每一束光>
     for light in lights {
-        let la=ka.component_mul(&amb_light_intensity);
-        let v=(eye_pos-point).normalize();
-        let l=(light.position-point).normalize();
-        let h=(v+l).normalize();
-        let r_square=(light.position-point).dot(&(light.position-point));
-        let ld=kd.component_mul(&light.intensity)/r_square*normal.normalize().dot(&l).max(0.0);
-        let ls=ks.component_mul(&light.intensity)/r_square*(normal.normalize().dot(&h).max(0.0)).powf(p);
-        result_color+=la+ld+ls;
+        let la = ka.component_mul(&amb_light_intensity);
+        let v = (eye_pos - point).normalize();
+        let l = (light.position - point).normalize();
+        let h = (v + l).normalize();
+        let r_square = (light.position - point).dot(&(light.position - point));
+        let ld =
+            kd.component_mul(&light.intensity) / r_square * normal.normalize().dot(&l).max(0.0);
+        let ls = ks.component_mul(&light.intensity) / r_square
+            * (normal.normalize().dot(&h).max(0.0)).powf(p);
+        result_color += la + ld + ls;
     }
     result_color * 255.0
 }
@@ -220,7 +234,7 @@ pub fn texture_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     let ka = Vector3::new(0.005, 0.005, 0.005);
     let texture_color: Vector3<f64> = match &payload.texture {
         None => Vector3::new(0.0, 0.0, 0.0),
-        Some(texture) => texture.get_color(payload.tex_coords.x,payload.tex_coords.y),
+        Some(texture) => texture.get_color(payload.tex_coords.x, payload.tex_coords.y),
     };
     let kd = texture_color / 255.0; // 材质颜色影响漫反射系数
     let ks = Vector3::new(0.7937, 0.7937, 0.7937);
@@ -246,14 +260,16 @@ pub fn texture_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     let mut result_color = Vector3::zeros();
 
     for light in lights {
-        let la=ka.component_mul(&amb_light_intensity);
-        let v=(eye_pos-point).normalize();
-        let l=(light.position-point).normalize();
-        let h=(v+l).normalize();
-        let r_square=(light.position-point).dot(&(light.position-point));
-        let ld=kd.component_mul(&light.intensity)/r_square*normal.normalize().dot(&l).max(0.0);
-        let ls=ks.component_mul(&light.intensity)/r_square*(normal.normalize().dot(&h).max(0.0)).powf(p);
-        result_color+=la+ld+ls;
+        let la = ka.component_mul(&amb_light_intensity);
+        let v = (eye_pos - point).normalize();
+        let l = (light.position - point).normalize();
+        let h = (v + l).normalize();
+        let r_square = (light.position - point).dot(&(light.position - point));
+        let ld =
+            kd.component_mul(&light.intensity) / r_square * normal.normalize().dot(&l).max(0.0);
+        let ls = ks.component_mul(&light.intensity) / r_square
+            * (normal.normalize().dot(&h).max(0.0)).powf(p);
+        result_color += la + ld + ls;
     }
     result_color * 255.0
 }
@@ -283,23 +299,23 @@ pub fn bump_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
 
     let (kh, kn) = (0.2, 0.1);
 
-    let x=normal.x;
-    let y=normal.y;
-    let z=normal.z;
-    let t=Vector3::new(x*y/(x*x+z*z).sqrt(),(x*x+z*z).sqrt(),z*y/(x*x+z*z).sqrt());
-    let b=normal.cross(&t);
-    let TBN=Matrix3::new(
-        t.x,b.x,normal.x,
-        t.y,b.y,normal.y,
-        t.z,b.z,normal.z,
+    let x = normal.x;
+    let y = normal.y;
+    let z = normal.z;
+    let t = Vector3::new(
+        x * y / (x * x + z * z).sqrt(),
+        (x * x + z * z).sqrt(),
+        z * y / (x * x + z * z).sqrt(),
     );
-    let (u,v)=(payload.tex_coords.x,payload.tex_coords.y);
-    let texture=payload.texture.as_ref().unwrap();
-    let (w,h)=(texture.width as f64,texture.height as f64);
-    let dU=kh*kn*(texture.get_color(u+1.0/w,v).norm()-texture.get_color(u,v).norm());
-    let dV=kh*kn*(texture.get_color(u,v+1.0/h).norm()-texture.get_color(u,v).norm());
-    let ln=Vector3::new(-dU,-dV,1.0);
-    normal=(TBN*ln).normalize();
+    let b = normal.cross(&t);
+    let TBN = Matrix3::new(t.x, b.x, normal.x, t.y, b.y, normal.y, t.z, b.z, normal.z);
+    let (u, v) = (payload.tex_coords.x, payload.tex_coords.y);
+    let texture = payload.texture.as_ref().unwrap();
+    let (w, h) = (texture.width as f64, texture.height as f64);
+    let dU = kh * kn * (texture.get_color(u + 1.0 / w, v).norm() - texture.get_color(u, v).norm());
+    let dV = kh * kn * (texture.get_color(u, v + 1.0 / h).norm() - texture.get_color(u, v).norm());
+    let ln = Vector3::new(-dU, -dV, 1.0);
+    normal = (TBN * ln).normalize();
     let mut result_color = Vector3::zeros();
     result_color = normal;
 
@@ -325,29 +341,43 @@ pub fn displacement_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
 
     let p = 150.0;
 
-    let normal = payload.normal;
-    let point = payload.view_pos;
+    let mut normal = payload.normal;
+    let mut point = payload.view_pos;
     let color = payload.color;
 
     let (kh, kn) = (0.2, 0.1);
 
-    // TODO: Implement displacement mapping here
-    // Let n = normal = (x, y, z)
-    // Vector t = (x*y/sqrt(x*x+z*z),sqrt(x*x+z*z),z*y/sqrt(x*x+z*z))
-    // Vector b = n cross product t
-    // Matrix TBN = [t b n]
-    // dU = kh * kn * (h(u+1/w,v)-h(u,v))
-    // dV = kh * kn * (h(u,v+1/h)-h(u,v))
-    // Vector ln = (-dU, -dV, 1)
-    // Position p = p + kn * n * h(u,v)
-    // Normal n = normalize(TBN * ln)
+    let x = normal.x;
+    let y = normal.y;
+    let z = normal.z;
+    let t = Vector3::new(
+        x * y / (x * x + z * z).sqrt(),
+        (x * x + z * z).sqrt(),
+        z * y / (x * x + z * z).sqrt(),
+    );
+    let b = normal.cross(&t);
+    let TBN = Matrix3::new(t.x, b.x, normal.x, t.y, b.y, normal.y, t.z, b.z, normal.z);
+    let (u, v) = (payload.tex_coords.x, payload.tex_coords.y);
+    let texture = payload.texture.as_ref().unwrap();
+    let (w, h) = (texture.width as f64, texture.height as f64);
+    let dU = kh * kn * (texture.get_color(u + 1.0 / w, v).norm() - texture.get_color(u, v).norm());
+    let dV = kh * kn * (texture.get_color(u, v + 1.0 / h).norm() - texture.get_color(u, v).norm());
+    let ln = Vector3::new(-dU, -dV, 1.0);
+    point += kn * normal * texture.get_color(u, v).norm();
+    normal = (TBN * ln).normalize();
 
     let mut result_color = Vector3::zeros();
     for light in lights {
-        // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
-        // components are. Then, accumulate that result on the *result_color* object.
-
-        
+        let la = ka.component_mul(&amb_light_intensity);
+        let v = (eye_pos - point).normalize();
+        let l = (light.position - point).normalize();
+        let h = (v + l).normalize();
+        let r_square = (light.position - point).dot(&(light.position - point));
+        let ld =
+            kd.component_mul(&light.intensity) / r_square * normal.normalize().dot(&l).max(0.0);
+        let ls = ks.component_mul(&light.intensity) / r_square
+            * (normal.normalize().dot(&h).max(0.0)).powf(p);
+        result_color += la + ld + ls;
     }
 
     result_color * 255.0

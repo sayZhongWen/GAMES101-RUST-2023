@@ -1,4 +1,4 @@
-use nalgebra::{Vector3};
+use nalgebra::Vector3;
 use opencv::core::{MatTraitConst, VecN};
 use opencv::imgcodecs::{imread, IMREAD_COLOR};
 
@@ -21,10 +21,18 @@ impl Texture {
     }
 
     pub fn get_color(&self, mut u: f64, mut v: f64) -> Vector3<f64> {
-        if u < 0.0 { u = 0.0; }
-        if u > 1.0 { u = 1.0; }
-        if v < 0.0 { v = 0.0; }
-        if v > 1.0 { v = 1.0; }
+        if u < 0.0 {
+            u = 0.0;
+        }
+        if u > 1.0 {
+            u = 1.0;
+        }
+        if v < 0.0 {
+            v = 0.0;
+        }
+        if v > 1.0 {
+            v = 1.0;
+        }
 
         let u_img = u * self.width as f64;
         let v_img = (1.0 - v) * self.height as f64;
