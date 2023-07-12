@@ -234,7 +234,7 @@ pub fn texture_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     let ka = Vector3::new(0.005, 0.005, 0.005);
     let texture_color: Vector3<f64> = match &payload.texture {
         None => Vector3::new(0.0, 0.0, 0.0),
-        Some(texture) => texture.get_color(payload.tex_coords.x, payload.tex_coords.y),
+        Some(texture) => texture.getColorBilinear(payload.tex_coords.x, payload.tex_coords.y),
     };
     let kd = texture_color / 255.0; // 材质颜色影响漫反射系数
     let ks = Vector3::new(0.7937, 0.7937, 0.7937);
@@ -312,8 +312,8 @@ pub fn bump_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     let (u, v) = (payload.tex_coords.x, payload.tex_coords.y);
     let texture = payload.texture.as_ref().unwrap();
     let (w, h) = (texture.width as f64, texture.height as f64);
-    let dU = kh * kn * (texture.get_color(u + 1.0 / w, v).norm() - texture.get_color(u, v).norm());
-    let dV = kh * kn * (texture.get_color(u, v + 1.0 / h).norm() - texture.get_color(u, v).norm());
+    let dU = kh * kn * (texture.getColorBilinear(u + 1.0 / w, v).norm() - texture.getColorBilinear(u, v).norm());
+    let dV = kh * kn * (texture.getColorBilinear(u, v + 1.0 / h).norm() - texture.getColorBilinear(u, v).norm());
     let ln = Vector3::new(-dU, -dV, 1.0);
     normal = (TBN * ln).normalize();
     let mut result_color = Vector3::zeros();
@@ -360,10 +360,10 @@ pub fn displacement_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     let (u, v) = (payload.tex_coords.x, payload.tex_coords.y);
     let texture = payload.texture.as_ref().unwrap();
     let (w, h) = (texture.width as f64, texture.height as f64);
-    let dU = kh * kn * (texture.get_color(u + 1.0 / w, v).norm() - texture.get_color(u, v).norm());
-    let dV = kh * kn * (texture.get_color(u, v + 1.0 / h).norm() - texture.get_color(u, v).norm());
+    let dU = kh * kn * (texture.getColorBilinear(u + 1.0 / w, v).norm() - texture.getColorBilinear(u, v).norm());
+    let dV = kh * kn * (texture.getColorBilinear(u, v + 1.0 / h).norm() - texture.getColorBilinear(u, v).norm());
     let ln = Vector3::new(-dU, -dV, 1.0);
-    point += kn * normal * texture.get_color(u, v).norm();
+    point += kn * normal * texture.getColorBilinear(u, v).norm();
     normal = (TBN * ln).normalize();
 
     let mut result_color = Vector3::zeros();
