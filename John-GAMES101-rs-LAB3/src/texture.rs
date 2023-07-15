@@ -41,7 +41,7 @@ impl Texture {
         Vector3::new(color[2] as f64, color[1] as f64, color[0] as f64)
     }
 
-    pub fn getColorBilinear(&self, mut u: f64, mut v: f64) -> Vector3<f64> {
+    pub fn get_color_bilinear(&self, mut u: f64, mut v: f64) -> Vector3<f64> {
         if u < 0.0 {
             u = 0.0;
         }
@@ -56,6 +56,9 @@ impl Texture {
         }
         let u_img = u * self.width as f64;
         let v_img = (1.0 - v) * self.height as f64;
+        // let m=Mat::zeros(self.height as i32,self.height as i32,CV_8UC3).unwrap();
+        // let mut img = self.img_data.clone()*m;
+        // cvt_color(&self.img_data.clone(),&mut img,COLOR_GRAY2RGB,1/255).expect("fail!");
         let color00: &VecN<u8, 3> = self.img_data.at_2d(v_img as i32, u_img as i32).unwrap();
         let color01: &VecN<u8, 3> = self.img_data.at_2d(v_img as i32, u_img as i32+1).unwrap();
         let color10: &VecN<u8, 3> = self.img_data.at_2d(v_img as i32+1, u_img as i32).unwrap();

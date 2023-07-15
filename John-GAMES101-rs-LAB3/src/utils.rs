@@ -157,7 +157,7 @@ pub fn choose_shader_texture(
     } else if method == "texture" {
         println!("Rasterizing using the normal shader");
         active_shader = texture_fragment_shader;
-        tex = Some(Texture::new(&(obj_path.to_owned() + "spot_texture.png")));
+        // tex = Some(Texture::new(&(obj_path.to_owned() + "spot_texture.png")));
     } else if method == "phong" {
         println!("Rasterizing using the phong shader");
         active_shader = phong_fragment_shader;
@@ -234,7 +234,7 @@ pub fn texture_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     let ka = Vector3::new(0.005, 0.005, 0.005);
     let texture_color: Vector3<f64> = match &payload.texture {
         None => Vector3::new(0.0, 0.0, 0.0),
-        Some(texture) => texture.getColorBilinear(payload.tex_coords.x, payload.tex_coords.y),
+        Some(texture) => texture.get_color_bilinear(payload.tex_coords.x, payload.tex_coords.y),
     };
     let kd = texture_color / 255.0; // 材质颜色影响漫反射系数
     let ks = Vector3::new(0.7937, 0.7937, 0.7937);
@@ -308,14 +308,14 @@ pub fn bump_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
         z * y / (x * x + z * z).sqrt(),
     );
     let b = normal.cross(&t);
-    let TBN = Matrix3::new(t.x, b.x, normal.x, t.y, b.y, normal.y, t.z, b.z, normal.z);
+    let tbn = Matrix3::new(t.x, b.x, normal.x, t.y, b.y, normal.y, t.z, b.z, normal.z);
     let (u, v) = (payload.tex_coords.x, payload.tex_coords.y);
     let texture = payload.texture.as_ref().unwrap();
     let (w, h) = (texture.width as f64, texture.height as f64);
-    let dU = kh * kn * (texture.getColorBilinear(u + 1.0 / w, v).norm() - texture.getColorBilinear(u, v).norm());
-    let dV = kh * kn * (texture.getColorBilinear(u, v + 1.0 / h).norm() - texture.getColorBilinear(u, v).norm());
-    let ln = Vector3::new(-dU, -dV, 1.0);
-    normal = (TBN * ln).normalize();
+    let d_u = kh * kn * (texture.get_color_bilinear(u + 1.0 / w, v).norm() - texture.get_color_bilinear(u, v).norm());
+    let d_v = kh * kn * (texture.get_color_bilinear(u, v + 1.0 / h).norm() - texture.get_color_bilinear(u, v).norm());
+    let ln = Vector3::new(-d_u, -d_v, 1.0);
+    normal = (tbn * ln).normalize();
     let mut result_color = Vector3::zeros();
     result_color = normal;
 
@@ -356,15 +356,15 @@ pub fn displacement_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
         z * y / (x * x + z * z).sqrt(),
     );
     let b = normal.cross(&t);
-    let TBN = Matrix3::new(t.x, b.x, normal.x, t.y, b.y, normal.y, t.z, b.z, normal.z);
+    let tbn = Matrix3::new(t.x, b.x, normal.x, t.y, b.y, normal.y, t.z, b.z, normal.z);
     let (u, v) = (payload.tex_coords.x, payload.tex_coords.y);
     let texture = payload.texture.as_ref().unwrap();
     let (w, h) = (texture.width as f64, texture.height as f64);
-    let dU = kh * kn * (texture.getColorBilinear(u + 1.0 / w, v).norm() - texture.getColorBilinear(u, v).norm());
-    let dV = kh * kn * (texture.getColorBilinear(u, v + 1.0 / h).norm() - texture.getColorBilinear(u, v).norm());
-    let ln = Vector3::new(-dU, -dV, 1.0);
-    point += kn * normal * texture.getColorBilinear(u, v).norm();
-    normal = (TBN * ln).normalize();
+    let d_u = kh * kn * (texture.get_color_bilinear(u + 1.0 / w, v).norm() - texture.get_color_bilinear(u, v).norm());
+    let d_v = kh * kn * (texture.get_color_bilinear(u, v + 1.0 / h).norm() - texture.get_color_bilinear(u, v).norm());
+    let ln = Vector3::new(-d_u, -d_v, 1.0);
+    point += kn * normal * texture.get_color_bilinear(u, v).norm();
+    normal = (tbn * ln).normalize();
 
     let mut result_color = Vector3::zeros();
     for light in lights {

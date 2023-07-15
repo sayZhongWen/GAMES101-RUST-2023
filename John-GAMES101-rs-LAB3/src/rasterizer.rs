@@ -134,10 +134,10 @@ impl Rasterizer {
                     let idx = Rasterizer::get_index(self.height, self.width, x, y);
                     if z_interpolated < self.depth_buf[idx] {
                         self.depth_buf[idx] = z_interpolated;
-                        let color = Rasterizer::interpolate_Vec3(
+                        let color = Rasterizer::interpolate_vec3(
                             c1, c2, c3, t.color[0], t.color[1], t.color[2], 1.0,
                         );
-                        let normal = Rasterizer::interpolate_Vec3(
+                        let normal = Rasterizer::interpolate_vec3(
                             c1,
                             c2,
                             c3,
@@ -146,7 +146,7 @@ impl Rasterizer {
                             t.normal[2],
                             1.0,
                         );
-                        let texcoord = Rasterizer::interpolate_Vec2(
+                        let texcoord = Rasterizer::interpolate_vec2(
                             c1,
                             c2,
                             c3,
@@ -160,7 +160,7 @@ impl Rasterizer {
                             Some(texx) => Some(Rc::new(texx)),
                         };
                         let mut fspl = FragmentShaderPayload::new(&color, &normal, &texcoord, tex);
-                        fspl.view_pos = Rasterizer::interpolate_Vec3(
+                        fspl.view_pos = Rasterizer::interpolate_vec3(
                             c1,
                             c2,
                             c3,
@@ -186,7 +186,7 @@ impl Rasterizer {
         }
     }
 
-    fn interpolate_Vec3(
+    fn interpolate_vec3(
         a: f64,
         b: f64,
         c: f64,
@@ -197,7 +197,7 @@ impl Rasterizer {
     ) -> Vector3<f64> {
         (a * vert1 + b * vert2 + c * vert3) / weight
     }
-    fn interpolate_Vec2(
+    fn interpolate_vec2(
         a: f64,
         b: f64,
         c: f64,
